@@ -1,11 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import IXPScoreExplanation from './App';
+import CandleQualityScoring from './App';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <IXPScoreExplanation />
+    <CandleQualityScoring />
   </React.StrictMode>
 );
