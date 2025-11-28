@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/candle-quality-explainer/static/css/main.34fbb62c.css",
-    "main.js": "/candle-quality-explainer/static/js/main.f3587e3d.js",
+    "main.css": "/candle-quality-explainer/static/css/main.b7840849.css",
+    "main.js": "/candle-quality-explainer/static/js/main.19de9034.js",
     "index.html": "/candle-quality-explainer/index.html",
-    "main.34fbb62c.css.map": "/candle-quality-explainer/static/css/main.34fbb62c.css.map",
-    "main.f3587e3d.js.map": "/candle-quality-explainer/static/js/main.f3587e3d.js.map"
+    "main.b7840849.css.map": "/candle-quality-explainer/static/css/main.b7840849.css.map",
+    "main.19de9034.js.map": "/candle-quality-explainer/static/js/main.19de9034.js.map"
   },
   "entrypoints": [
-    "static/css/main.34fbb62c.css",
-    "static/js/main.f3587e3d.js"
+    "static/css/main.b7840849.css",
+    "static/js/main.19de9034.js"
   ]
 }
