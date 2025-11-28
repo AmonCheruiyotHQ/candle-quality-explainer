@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Activity, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, Activity, AlertCircle, Clock, RotateCw } from 'lucide-react';
 
 const CandleQualityScoring = () => {
   const [selectedType, setSelectedType] = useState(1);
   const [tradeDirection, setTradeDirection] = useState('buy');
+  const [timeframeApproach, setTimeframeApproach] = useState('M1');
+  const [currentTime, setCurrentTime] = useState('10:00:45');
 
   const candleTypes = [
     {
@@ -11,8 +13,8 @@ const CandleQualityScoring = () => {
       name: "TYPE 1 - Perfect Alignment",
       description: "Every value read is above / below the previous one.",
       score: 5.0,
-      buyPattern: "Each candle higher than the previous",
-      sellPattern: "Each candle lower than the previous",
+      buyPattern: "Each 15s block closes higher than the previous",
+      sellPattern: "Each 15s block closes lower than the previous",
       buyCandleData: [
         { position: 1, open: 100, close: 105, high: 106, low: 99 },
         { position: 2, open: 105, close: 110, high: 111, low: 104 },
@@ -31,8 +33,8 @@ const CandleQualityScoring = () => {
       name: "TYPE 2 - Strong Momentum",
       description: "The 2nd read value is below / above the value 1, yet the last 3 readings are nicely in a row up/down",
       score: 4.5,
-      buyPattern: "M1 candle dips, but M2 and M1 candles trend strongly upward",
-      sellPattern: "M1 candle rises, but M2 and M1 candles trend strongly downward",
+      buyPattern: "Block 2 dips, but blocks 3 & 4 trend strongly upward",
+      sellPattern: "Block 2 rises, but blocks 3 & 4 trend strongly downward",
       buyCandleData: [
         { position: 1, open: 100, close: 105, high: 106, low: 99 },
         { position: 2, open: 105, close: 103, high: 107, low: 102 },
@@ -51,8 +53,8 @@ const CandleQualityScoring = () => {
       name: "TYPE 3 - Steady Build-up",
       description: "First 3 values in a row nicely, yet the last one stays the same as the value 3",
       score: 4.5,
-      buyPattern: "Strong upward trend in first 3 candles, last candle consolidates",
-      sellPattern: "Strong downward trend in first 3 candles, last candle consolidates",
+      buyPattern: "Strong upward trend in first 3 blocks, block 4 consolidates",
+      sellPattern: "Strong downward trend in first 3 blocks, block 4 consolidates",
       buyCandleData: [
         { position: 1, open: 100, close: 105, high: 106, low: 99 },
         { position: 2, open: 105, close: 110, high: 111, low: 104 },
@@ -71,8 +73,8 @@ const CandleQualityScoring = () => {
       name: "TYPE 4 - Progressive Strength",
       description: "Value 2 => Value 1; Value 3 => Value 2; Value 4 => Value 3",
       score: 4.5,
-      buyPattern: "Each candle equal to or higher than previous",
-      sellPattern: "Each candle equal to or lower than previous",
+      buyPattern: "Each block equal to or higher than previous",
+      sellPattern: "Each block equal to or lower than previous",
       buyCandleData: [
         { position: 1, open: 100, close: 105, high: 106, low: 99 },
         { position: 2, open: 105, close: 105, high: 107, low: 104 },
@@ -191,6 +193,27 @@ const CandleQualityScoring = () => {
   const selectedCandle = candleTypes.find(c => c.type === selectedType);
   const candleData = tradeDirection === 'buy' ? selectedCandle.buyCandleData : selectedCandle.sellCandleData;
 
+  // Calculate time blocks based on current time
+  const getTimeBlocks = () => {
+    const [hours, minutes, seconds] = currentTime.split(':').map(Number);
+    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+    
+    const block4End = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    const block4Start = `${Math.floor((totalSeconds - 15) / 3600).toString().padStart(2, '0')}:${Math.floor(((totalSeconds - 15) % 3600) / 60).toString().padStart(2, '0')}:${((totalSeconds - 15) % 60).toString().padStart(2, '0')}`;
+    const block3Start = `${Math.floor((totalSeconds - 30) / 3600).toString().padStart(2, '0')}:${Math.floor(((totalSeconds - 30) % 3600) / 60).toString().padStart(2, '0')}:${((totalSeconds - 30) % 60).toString().padStart(2, '0')}`;
+    const block2Start = `${Math.floor((totalSeconds - 45) / 3600).toString().padStart(2, '0')}:${Math.floor(((totalSeconds - 45) % 3600) / 60).toString().padStart(2, '0')}:${((totalSeconds - 45) % 60).toString().padStart(2, '0')}`;
+    const block1Start = `${Math.floor((totalSeconds - 60) / 3600).toString().padStart(2, '0')}:${Math.floor(((totalSeconds - 60) % 3600) / 60).toString().padStart(2, '0')}:${((totalSeconds - 60) % 60).toString().padStart(2, '0')}`;
+    
+    return [
+      `${block1Start} - ${block2Start.split(':')[2] === '00' ? block2Start.slice(0, -3) + ':00' : block2Start}`,
+      `${block2Start} - ${block3Start.split(':')[2] === '00' ? block3Start.slice(0, -3) + ':00' : block3Start}`,
+      `${block3Start} - ${block4Start.split(':')[2] === '00' ? block4Start.slice(0, -3) + ':00' : block4Start}`,
+      `${block4Start} - ${block4End}`
+    ];
+  };
+
+  const timeBlocks = getTimeBlocks();
+
   // Draw a single candle
   const drawCandle = (candle, index, maxPrice, minPrice, color) => {
     const chartHeight = 200;
@@ -234,11 +257,11 @@ const CandleQualityScoring = () => {
           x={xPos + candleWidth / 2}
           y={chartHeight + 50}
           textAnchor="middle"
-          fontSize="12"
+          fontSize="11"
           fill="#64748b"
           fontWeight="600"
         >
-          {candle.position === 1 ? 'M2' : candle.position === 2 ? 'M1' : candle.position === 3 ? 'M1' : 'M1'}
+          Block {candle.position}
         </text>
         {/* Close price label */}
         <text
@@ -260,9 +283,85 @@ const CandleQualityScoring = () => {
 
   return (
     <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Header */}
       <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-slate-800 mb-3">Candle Quality Scoring System</h1>
-        <p className="text-lg text-slate-600">Identifying sustainable moves through candle pattern analysis</p>
+        <h1 className="text-4xl font-bold text-slate-800 mb-3">Candle Quality Scoring - Rolling Principle</h1>
+        <p className="text-lg text-slate-600 mb-3">Continuously analyzing the last 60 seconds for sustained momentum</p>
+        <div className="inline-block bg-blue-100 text-blue-800 px-6 py-3 rounded-lg font-semibold">
+          <RotateCw className="inline mr-2" size={20} />
+          📊 Rolling Analysis: Last 60 Seconds → Four 15-Second Blocks
+        </div>
+      </div>
+
+      {/* Rolling Principle Explanation */}
+      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl p-6 mb-8 shadow-lg">
+        <div className="flex items-start gap-4">
+          <Clock size={40} className="flex-shrink-0" />
+          <div>
+            <h2 className="text-2xl font-bold mb-3">The Rolling Principle</h2>
+            <p className="text-lg mb-3">
+              We ALWAYS analyze the <strong>last 60 seconds</strong> split into 4 blocks, updating every 15 seconds.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div className="bg-white/20 backdrop-blur-sm p-4 rounded-lg">
+                <div className="font-bold mb-2">M1 Approach</div>
+                <div className="text-sm">Analyzing the current forming M1 candle - enter based on real-time momentum</div>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm p-4 rounded-lg">
+                <div className="font-bold mb-2">M2 Approach</div>
+                <div className="text-sm">Check quality of the last minute within M2 - ensure momentum is still strong</div>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm p-4 rounded-lg">
+                <div className="font-bold mb-2">M5 Approach</div>
+                <div className="text-sm">Verify the most recent minute in M5 - confirm momentum hasn't faded</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Timeframe Selector */}
+      <div className="bg-white rounded-xl p-6 shadow-lg mb-6">
+        <h3 className="text-xl font-bold text-slate-800 mb-4 text-center">Select Trading Approach</h3>
+        <div className="flex justify-center gap-4">
+          {['M1', 'M2', 'M5'].map(tf => (
+            <button
+              key={tf}
+              onClick={() => setTimeframeApproach(tf)}
+              className={`px-6 py-3 rounded-lg font-bold transition-all ${
+                timeframeApproach === tf
+                  ? 'bg-indigo-500 text-white shadow-lg scale-105'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {tf} Approach
+            </button>
+          ))}
+        </div>
+        <div className="mt-4 text-center text-slate-600">
+          <strong>Current Selection:</strong> {timeframeApproach} Approach
+          <div className="text-sm mt-2">
+            {timeframeApproach === 'M1' && '✓ Analyzing the current forming M1 candle'}
+            {timeframeApproach === 'M2' && '✓ Checking quality of the last minute within M2 period'}
+            {timeframeApproach === 'M5' && '✓ Verifying momentum of the last minute within M5 candle'}
+          </div>
+        </div>
+      </div>
+
+      {/* Current Time Display */}
+      <div className="bg-slate-100 rounded-xl p-4 mb-6 text-center">
+        <div className="flex items-center justify-center gap-3 mb-3">
+          <Clock className="text-slate-600" size={24} />
+          <span className="text-lg font-semibold text-slate-700">Current Time: {currentTime}</span>
+        </div>
+        <div className="text-sm text-slate-600 mb-3">Analyzing these 4 blocks (rolling window):</div>
+        <div className="grid grid-cols-4 gap-2">
+          {timeBlocks.map((block, idx) => (
+            <div key={idx} className="bg-white p-2 rounded font-mono text-xs text-slate-700 border-2 border-indigo-200">
+              {block}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Trade Direction Toggle */}
@@ -340,9 +439,12 @@ const CandleQualityScoring = () => {
 
       {/* Candle Chart Visualization */}
       <div className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-xl font-bold text-slate-800 mb-4 text-center">
-          Candlestick Pattern - {tradeDirection === 'buy' ? 'Bullish' : 'Bearish'} Setup
+        <h3 className="text-xl font-bold text-slate-800 mb-2 text-center">
+          15-Second Block Pattern - {tradeDirection === 'buy' ? 'Bullish' : 'Bearish'} Setup
         </h3>
+        <p className="text-sm text-slate-600 mb-4 text-center">
+          Rolling window: Last 60 seconds analyzed continuously
+        </p>
         
         <div className="flex justify-center">
           <svg width="320" height="280" className="border border-slate-200 rounded-lg bg-slate-50">
@@ -352,55 +454,54 @@ const CandleQualityScoring = () => {
             
             {/* Legend */}
             <text x="160" y="270" textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="600">
-              ← Older Candles | Newer Candles →
+              ← Oldest Block | Newest Block (Current) →
             </text>
           </svg>
         </div>
 
         <div className="mt-4 grid grid-cols-4 gap-2 text-center">
           {candleData.map((candle, idx) => (
-            <div key={idx} className="bg-slate-50 p-2 rounded">
+            <div key={idx} className={`p-2 rounded ${idx === 3 ? 'bg-indigo-100 border-2 border-indigo-400' : 'bg-slate-50'}`}>
               <div className="text-xs font-semibold text-slate-600">
-                {candle.position === 1 ? 'M2 Candle' : candle.position === 2 ? 'M1 Candle (3rd)' : candle.position === 3 ? 'M1 Candle (2nd)' : 'M1 Candle (Latest)'}
+                Block {candle.position} {idx === 3 ? '(Live)' : ''}
               </div>
               <div className="text-xs text-slate-500 mt-1">
-                C: {candle.close} | O: {candle.open}
+                {timeBlocks[idx]}
+              </div>
+              <div className="text-xs text-slate-500">
+                C: {candle.close}
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Scoring Explanation */}
-      <div className="mt-6 bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+      {/* Key Benefits */}
+      <div className="mt-6 bg-green-50 border-2 border-green-200 rounded-xl p-6">
         <div className="flex items-start gap-3">
-          <AlertCircle className="text-blue-600 flex-shrink-0 mt-1" size={24} />
+          <AlertCircle className="text-green-600 flex-shrink-0 mt-1" size={24} />
           <div>
-            <h3 className="font-bold text-blue-900 mb-3 text-lg">Understanding Candle Quality:</h3>
+            <h3 className="font-bold text-green-900 mb-3 text-lg">Why Rolling Analysis is Powerful:</h3>
             <ul className="space-y-2 text-slate-700">
               <li className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold">•</span>
-                <span><strong>M2 Candle:</strong> The older reference candle (furthest left)</span>
+                <span className="text-green-600 font-bold">✓</span>
+                <span><strong>No Waiting:</strong> Catch momentum while it's happening, not 2 candles later</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold">•</span>
-                <span><strong>M1 Candles:</strong> The three most recent candles showing current momentum</span>
+                <span className="text-green-600 font-bold">✓</span>
+                <span><strong>Real-Time Quality Check:</strong> Always know if momentum is strong RIGHT NOW</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold">•</span>
-                <span><strong>Score 5.0:</strong> Perfect alignment - strongest signal for sustainable move</span>
+                <span className="text-green-600 font-bold">✓</span>
+                <span><strong>Works on All Timeframes:</strong> M1, M2, M5 - same analysis, different application</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold">•</span>
-                <span><strong>Score 4.0-4.5:</strong> Strong patterns with minor consolidation</span>
+                <span className="text-green-600 font-bold">✓</span>
+                <span><strong>Prevents Late Entries:</strong> Ensures "the first minute candle is strong"</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold">•</span>
-                <span><strong>Score 3.5:</strong> Moderate strength with some pullback</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold">•</span>
-                <span><strong>Score 0:</strong> No clear direction - avoid trading</span>
+                <span className="text-green-600 font-bold">✓</span>
+                <span><strong>Updates Every 15s:</strong> Fresh analysis as new blocks form</span>
               </li>
             </ul>
           </div>
